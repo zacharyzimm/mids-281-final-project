@@ -5,7 +5,7 @@ sudo apt-get unzip
 unzip chest-ctscan-images.zip
 
 # create venv
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 
 
@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 
 #make sure notebook can use the venv
-python -m ipykernel install --name=venv
+python3 -m ipykernel install --name=venv
 
 #start jupyter notebook
 jupyter notebook
