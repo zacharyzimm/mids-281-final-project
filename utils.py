@@ -7,7 +7,7 @@ from skimage.transform import resize
 
 class_mappings = {
     0: "normal",
-    1: "adenocarcinoma.lower.lobe_T2_N0_M0_Ib",
+    1: "adenocarcinoma_left.lower.lobe_T2_N0_M0_Ib",
     2: "large.cell.carcinoma_left.hilum_T2_N2_M0_IIIa",
     3: "squamous.cell.carcinoma_left.hilum_T1_N2_M0_IIIa"
 }
@@ -48,18 +48,16 @@ def detect_border_and_crop(image):
   return crop, thresh_crop
 
 def crop_and_resize_images(split_path, out_img_size, out_img_dir):
-  if not os.path.exists(out_img_dir):
-    os.makedirs(out_img_dir)
   split = split_path.rpartition("/")[2]
   for label, class_name in class_mappings.items():
     class_path = os.path.join(split_path, class_name)
-    if not os.path.exists(os.path.join(out_img_dir, split)):
-      os.makedirs(os.path.join(out_img_dir, split))
+    if not os.path.exists(os.path.join(out_img_dir, split, class_name)):
+        os.makedirs(os.path.join(out_img_dir, split, class_name))
     for img_name in os.listdir(class_path):
       img = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
       cropped, _ = detect_border_and_crop(img)
       resized_img = resize(img, out_img_size, anti_aliasing=True)
-      plt.imsave(os.path.join(out_img_dir, split, img_name), resized_img, cmap="gray")
+      plt.imsave(os.path.join(out_img_dir, split, class_name, img_name), resized_img, cmap="gray")
 
 
 ##### Feature extraction
