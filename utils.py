@@ -53,13 +53,13 @@ def crop_and_resize_images(split_path, out_img_size, out_img_dir):
   split = split_path.rpartition("/")[2]
   for label, class_name in class_mappings.items():
     class_path = os.path.join(split_path, class_name)
+    if not os.path.exists(os.path.join(out_img_dir, split)):
+      os.makedirs(os.path.join(out_img_dir, split))
     for img_name in os.listdir(class_path):
-      if img_name.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-        print(img_name)
-        img = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
-        cropped, _ = detect_border_and_crop(img)
-        resized_img = resize(img, out_img_size, anti_aliasing=True)
-        plt.imsave(out_img_dir+"/"+img_name, resized_img, cmap="gray")
+      img = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
+      cropped, _ = detect_border_and_crop(img)
+      resized_img = resize(img, out_img_size, anti_aliasing=True)
+      plt.imsave(os.path.join(out_img_dir, split, img_name), resized_img, cmap="gray")
 
 
 ##### Feature extraction
