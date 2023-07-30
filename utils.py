@@ -2,7 +2,15 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage.transform import resize
 
+
+class_mappings = {
+    0: "normal",
+    1: "adenocarcinoma.lower.lobe_T2_N0_M0_Ib",
+    2: "large.cell.carcinoma_left.hilum_T2_N2_M0_IIIa",
+    3: "squamous.cell.carcinoma_left.hilum_T1_N2_M0_IIIa"
+}
 
 ##### Preprocessing 
 
@@ -12,8 +20,72 @@ def preprocess_image(image):
   image = cv2.equalizeHist(image)
   return image
 
+def detect_border_and_crop(image):
+  kernel_size = 5
+  sigma = 1.0
+  kernel = cv2.getGaussianKernel(kernel_size, sigma)
+  kernel = np.outer(kernel, kernel.transpose())
+
+  # Apply the Gaussian filter
+  gray = cv2.filter2D(image, -1, kernel)
+
+  # threshold to get just the signature
+  _, thresh_gray = cv2.threshold(gray, thresh=50, maxval=255, type=cv2.THRESH_BINARY)
+
+  # find where the signature is and make a cropped region
+  points = np.argwhere(thresh_gray!=0) # find where the black pixels are
+  points = np.fliplr(points) # store them in x,y coordinates instead of row,col indices
+  
+  try:
+    x, y, w, h = cv2.boundingRect(points) # create a rectangle around those points
+    crop = gray[y:y+h, x:x+w] # create a cropped region of the gray image
+  except:
+    crop = gray
+  
+  # get the thresholded crop
+  _, thresh_crop = cv2.threshold(crop, thresh=50, maxval=255, type=cv2.THRESH_BINARY)
+
+  return crop, thresh_crop
+
+def crop_and_resize_images(split_path, out_img_size, out_img_dir):
+  if not os.path.exists(out_img_dir):
+    os.makedirs(out_img_dir)
+  split = split_path.rpartition("/")[2]
+  for label, class_name in class_mappings.items():
+    class_path = os.path.join(split_path, class_name)
+    for img_name in os.listdir(class_path):
+      if img_name.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+        print(img_name)
+        img = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
+        cropped, _ = detect_border_and_crop(img)
+        resized_img = resize(img, out_img_size, anti_aliasing=True)
+        plt.imsave(out_img_dir+"/"+img_name, resized_img, cmap="gray")
+
 
 ##### Feature extraction
+
+def get_average_image_size(img_dir):
+  img_sizes = []
+
+  for img_name in os.listdir(img_dir):
+      try:
+          img = plt.imread(img_dir + img_name)
+          img_sizes.append([img.shape[0], img.shape[1]])
+      except:
+          print(img_name + " corrupt")
+
+  img_sizes = np.array(img_sizes)
+
+  print("Average Image Sizes")
+  m_mean = np.mean(img_sizes[:, 0])
+  n_mean = np.mean(img_sizes[:, 1])
+  print(f"    mean:   ({m_mean}, {n_mean})")
+
+  m_median = np.median(img_sizes[:, 0])
+  n_median = np.median(img_sizes[:, 1])
+  print(f"    median: ({m_median}, {n_median})")
+
+  return [m_mean, n_mean], [m_median, n_median]
 
 def detect_edges_sobel(image, threshold=50):
     # Apply the Sobel operator to detect edges in the horizontal direction
