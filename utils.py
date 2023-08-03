@@ -2,8 +2,12 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.transform import resize
+import seaborn as sns
 
+from skimage.transform import resize
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import confusion_matrix
 
 class_mappings = {
     0: "normal",
@@ -14,10 +18,16 @@ class_mappings = {
 
 ##### Preprocessing 
 
-def preprocess_image(image):
+def preprocess_image(image, crop_and_resize=False, out_img_size=(256, 256)):
+  if crop_and_resize:
+    ## Crop image
+    image, _ = detect_border_and_crop(image)
+    ## Resize image
+    image = resize(image, out_img_size, anti_aliasing=True)
 
   ## Apply histogram equalization to the image
   image = cv2.equalizeHist(image)
+
   return image
 
 def detect_border_and_crop(image):
@@ -115,7 +125,11 @@ def apply_hounsfield_units(image, bone_hu=400, fat_hu=-120, water_hu = 0, air_hu
 
     return ct_image
 
-def extract_features(split_path, feature_func, class_mappings):
+def threshold_image(img, thresh=100):
+  img[img > thresh] = 0
+  return img
+
+def extract_features(split_path, feature_func):
     features = []
     images = []
     labels = []
@@ -135,7 +149,7 @@ def extract_features(split_path, feature_func, class_mappings):
 
 ##### Visualizations
 
-def plot_features(imgs, features, labels, idx, feature_name, class_mappings):
+def plot_features(imgs, features, labels, idx, feature_name):
   fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
 
   ax[0].imshow(imgs[idx], cmap='gray', vmin=0, vmax=255)
@@ -150,3 +164,29 @@ def plot_features(imgs, features, labels, idx, feature_name, class_mappings):
 
   fig.tight_layout()
   plt.show()
+
+
+##### Classifiers
+
+def cosine_similarity_kmeans(train_features, num_clusters=4):
+  features = np.array([img.flatten() for img in train_features])
+
+  # Calculate cosine similarity matrix
+  cosine_sim_matrix = cosine_similarity(features)
+
+  # Create the KMeans model with cosine similarity
+  kmeans = KMeans(n_clusters=num_clusters, init='k-means++', n_init=10, random_state=42)
+  kmeans.fit(cosine_sim_matrix)
+
+  # Get cluster labels for each data point
+  preds = kmeans.labels_
+
+  # Get cluster centers (representative points)
+  cluster_centers = kmeans.cluster_centers_
+
+  return preds, cluster_centers
+
+def plot_confusion_matrix(true_labels, pred_labels):
+  conf_matrix = confusion_matrix(true_labels, pred_labels)
+  classes = [x[1].partition("_")[0] for x in class_mappings.items()]
+  sns.heatmap(conf_matrix, annot=True, cmap="YlGnBu", fmt="d", xticklabels=classes, yticklabels=classes)
