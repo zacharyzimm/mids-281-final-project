@@ -8,6 +8,8 @@ from skimage.transform import resize
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import confusion_matrix
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 class_mappings = {
     0: "normal",
@@ -190,3 +192,14 @@ def plot_confusion_matrix(true_labels, pred_labels):
   conf_matrix = confusion_matrix(true_labels, pred_labels)
   classes = [x[1].partition("_")[0] for x in class_mappings.items()]
   sns.heatmap(conf_matrix, annot=True, cmap="YlGnBu", fmt="d", xticklabels=classes, yticklabels=classes)
+
+def classify_decision_tree(X_train, y_train, X_val, y_val):
+    clf = DecisionTreeClassifier()
+
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_val)
+
+    accuracy = accuracy_score(y_val, y_pred)
+    print("Accuracy:", accuracy)
+
+    return y_pred
