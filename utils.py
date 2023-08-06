@@ -7,9 +7,11 @@ import seaborn as sns
 from skimage.transform import resize
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.svm import SVC
 
 class_mappings = {
     0: "normal",
@@ -149,6 +151,41 @@ def extract_features(split_path, feature_func):
     return images, features, labels
 
 
+##### Dimmensionality Reduction
+
+def get_PCA(X_list, n_components=2):
+  pca_list = []
+  xpca_list = []
+  for X in X_list:
+    pca = PCA(n_components=n_components, svd_solver="randomized", whiten=True).fit(X)
+    X_pca = pca.transform(X)
+    pca_list.append(pca)
+    xpca_list.append(X_pca)
+  return pca_list, xpca_list
+
+def plot_PCA(X_list, labels, n_components=2):
+  pca_list, xpca_list = get_PCA(X_list, n_components=n_components)
+
+  plt.figure(figsize=(15,5))
+  colors = ['b-', 'm-', 'r-']
+  for i in range(len(X_list)):
+    plt.plot(np.cumsum(pca_list[i].explained_variance_ratio_), colors[i], label=labels[i])
+  plt.xticks(np.arange(n_components)+1)
+  plt.yticks(np.linspace(0, 1, 8))
+  plt.grid(True)
+  plt.xlabel('Number of components')
+  plt.ylabel('Explained Variances')
+  plt.legend()
+  plt.show()
+
+def get_tsne(X_list, n_components=2):
+  xtsne_list = []
+  for X in X_list:
+    tsne = TSNE(n_components=n_components, random_state=0)
+    X_tsne = tsne.fit_transform(X)
+    xtsne_list.append(X_tsne)
+  return xtsne_list
+
 ##### Visualizations
 
 def plot_features(imgs, features, labels, idx, feature_name):
@@ -203,3 +240,62 @@ def classify_decision_tree(X_train, y_train, X_val, y_val):
     print("Accuracy:", accuracy)
 
     return y_pred
+
+def linear_svm(X_train, y_train, X_val=None, y_val=None):
+    clf = SVC(C=1e10, kernel="linear")
+    clf.fit(X_train, y_train)
+    X_df = pd.DataFrame({"x": X_train[:,0],
+                        "y": X_train[:,1],
+                        "label": y_train
+                        })
+    ### plot linear SVM results
+    w = clf.coef_[0]
+    b = clf.intercept_
+
+    colors = np.random.rand(len(class_mappings.keys()), 3)
+
+    print(f"w = {w}")
+    print(f"b = {b}")
+
+    svmx = np.linspace(-2,2)
+    svmy = -w[0]/w[1]*svmx - b[0]/w[1]
+
+    fix = plt.figure()
+    ax = fig.add_subplot(111)
+    for l in class_mappings.keys():
+        plt.scatter(X_df[X_df['label'] == l]['x'],
+                    X_df[X_df['label'] == l]['y'],
+                    c=colors[l], label=class_mappings[l])
+        plt.plot(svmx, svmy, "m")
+        plt.legend()
+        plt.axis([-2, 2, -2, 2])
+        plt.show()
+
+def nonlinear_svm(X_train, y_train, X_val, y_val):
+    clf = SVC(C=1e10, kernel="sigmoid")
+    clf.fit(X_train, y_train)
+
+    # Create a mesh grid to plot decision regions
+    h = .02  # Step size in the mesh
+    x_min, x_max = X_train[:, 0].min() - 1, X_train[:, 0].max() + 1
+    y_min, y_max = X_train[:, 1].min() - 1, X_train[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+    # Obtain the predicted class labels for each point in the mesh grid
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    # Plot the decision regions
+    plt.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
+
+    # Plot the data points
+    plt.scatter(X[:, 0], X[:, 1], c=y_train, cmap=plt.cm.coolwarm, edgecolors='k')
+
+    plt.xlabel('PCA Component 1')
+    plt.ylabel('PCA Component 2')
+    plt.title('Nonlinear SVM Decision Regions')
+    plt.show()
+
+    y_pred = clf.predict(X_val)
+
+    accuracy = accuracy_score(y_val, y_pred)
+    print("Accuracy:", accuracy)
