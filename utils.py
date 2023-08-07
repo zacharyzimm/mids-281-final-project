@@ -137,6 +137,48 @@ def threshold_image(img, thresh=100):
   img[img > thresh] = 0
   return img
 
+def scale_value(X):
+    original_min, original_max = (-1024, 3071)
+    new_min, new_max = (0, 255)
+    normalized_X = (X - original_min) / (original_max - original_min)
+    scaled_X = normalized_X * (new_max - new_min) + new_min
+    return scaled_X
+
+def get_soft_tissue(image):
+    soft_tissue_lower = scale_value(30)  # Choose the lower bound based on the soft tissue range
+    soft_tissue_upper = scale_value(60)  # Choose the upper bound based on the soft tissue range
+
+    # Apply windowing to filter the soft tissue in the CT scan
+    windowed_image = np.clip(image, soft_tissue_lower, soft_tissue_upper)
+
+    # Normalize the windowed image to the range [0, 1] for visualization
+    windowed_image_normalized = (windowed_image - soft_tissue_lower) / (soft_tissue_upper - soft_tissue_lower)
+
+    # # Display the original and windowed images
+    # plt.figure(figsize=(10, 5))
+    # plt.subplot(1, 3, 1)
+    # plt.imshow(image, cmap='gray')
+    # plt.title('Original CT Scan')
+    # plt.axis('off')
+
+    # plt.subplot(1, 3, 2)
+    # plt.imshow(windowed_image_normalized, cmap='gray')
+    # plt.title('Soft Tissue Filter')
+    # plt.axis('off')
+
+    masked_img = image.copy()
+    masked_img[windowed_image_normalized==0] = 1
+
+    # plt.subplot(1, 3, 3)
+    # plt.imshow(masked_img, cmap='gray')
+    # plt.title('Soft Tissue Filtered CT Scan')
+    # plt.axis('off')
+
+    # plt.suptitle(f'Class Label: {class_mappings[class_label]} ', fontsize=16)
+
+    # plt.show()
+    return masked_img
+
 def extract_features(split_path, feature_func):
     features = []
     images = []
@@ -147,7 +189,7 @@ def extract_features(split_path, feature_func):
         for img_name in os.listdir(class_path):
             image = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
             image = preprocess_image(image)
-            feat = feature_func(image)
+            feat = feature_func(image.copy())
             images.append(image)
             features.append(feat)
             labels.append(label)
