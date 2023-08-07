@@ -120,6 +120,10 @@ def detect_edges_sobel(image, threshold=50):
 
     return edges
 
+def detect_canny_edges(im, lower_bound=150, upper_bound=200):
+    edges = cv2.Canny(im, lower_bound, (lower_bound+upper_bound)) #*.5)
+    return edges
+
 def apply_hounsfield_units(image, bone_hu=400, fat_hu=-120, water_hu = 0, air_hu=-1000):
     # Adjusting Hounsfield Units for the CT scan image
     # ct_image = (image - bone_hu) / (bone_hu - fat_hu) * 255
@@ -204,6 +208,17 @@ def plot_features(imgs, features, labels, idx, feature_name):
   fig.tight_layout()
   plt.show()
 
+def plot_image_histograms(img):
+  # Calculate the histogram
+  hist, bins = np.histogram(img.flatten(), 256, [0, 256])
+
+  # Plot the histogram
+  plt.figure(figsize=(8, 6))
+  plt.bar(bins[:-1], hist, width=1, color='gray')
+  plt.title("Grayscale Histogram")
+  plt.xlabel("Pixel Value")
+  plt.ylabel("Frequency")
+  plt.show()
 
 ##### Classifiers
 
