@@ -13,6 +13,11 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.svm import SVC
 
+import torchvision.models as models
+from torchvision import transforms
+from torch import nn
+from PIL import Image
+
 class_mappings = {
     0: "normal",
     1: "adenocarcinoma_left.lower.lobe_T2_N0_M0_Ib",
@@ -179,7 +184,25 @@ def get_soft_tissue(image):
     # plt.show()
     return masked_img
 
-def extract_features(split_path, feature_func):
+def get_resnet_features(img, model):
+    
+    model_conv_features = nn.Sequential(*list(model.children())[:-1]).to('cpu')
+    preprocess = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    if np.max(img) > 1:
+        img = img.astype(np.uint8)
+    else:
+        img = (img * 255.0).astype(np.uint8)
+    img = Image.fromarray(img).convert('RGB')
+    img = preprocess(img)
+
+    return model_conv_features(img.unsqueeze(0).to('cpu')).squeeze().detach().numpy()
+
+def extract_features(split_path, feature_func, kwargs=None):
     features = []
     images = []
     labels = []
@@ -189,7 +212,10 @@ def extract_features(split_path, feature_func):
         for img_name in os.listdir(class_path):
             image = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
             image = preprocess_image(image)
-            feat = feature_func(image.copy())
+            if kwargs:
+              feat = feature_func(image.copy(), **kwargs)
+            else:
+              feat = feature_func(image.copy())
             images.append(image)
             features.append(feat)
             labels.append(label)
