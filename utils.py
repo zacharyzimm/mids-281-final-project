@@ -13,8 +13,8 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.svm import SVC
 
-import torchvision.models as models
 from torchvision import transforms
+import torch
 from torch import nn
 from PIL import Image
 
@@ -201,6 +201,20 @@ def get_resnet_features(img, model):
     img = preprocess(img)
 
     return model_conv_features(img.unsqueeze(0).to('cpu')).squeeze().detach().numpy()
+
+def transformer_feature_vector(image, model, extractor):
+  # Preprocess the image using the feature extractor
+  image = Image.fromarray(image).convert('RGB')
+  inputs = extractor(images=image, return_tensors="pt")
+
+  # Forward pass through the model's transformer (without the classification head)
+  with torch.no_grad():
+      feature_vector = model.vit(**inputs).last_hidden_state
+
+  # Optionally, convert to a NumPy array
+  feature_vector = feature_vector.numpy()
+
+  return feature_vector
 
 def extract_features(split_path, feature_func, kwargs=None):
     features = []
