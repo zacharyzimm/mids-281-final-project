@@ -124,7 +124,7 @@ def detect_edges_sobel(image, threshold=50):
 
     return edges
 
-def detect_canny_edges(im, lower_bound=150, upper_bound=200):
+def detect_canny_edges(im, lower_bound=100, upper_bound=200):
     edges = cv2.Canny(im, lower_bound, (lower_bound+upper_bound)) #*.5)
     return edges
 
@@ -137,7 +137,7 @@ def apply_hounsfield_units(image, bone_hu=400, fat_hu=-120, water_hu = 0, air_hu
 
     return ct_image
 
-def extract_features(split_path, feature_func, class_mappings):
+def extract_features(split_path, feature_func, class_mappings, kwargs):
     features = []
     images = []
     labels = []
@@ -146,7 +146,7 @@ def extract_features(split_path, feature_func, class_mappings):
         class_path = os.path.join(split_path, class_name)
         for img_name in os.listdir(class_path):
             image = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
-            feat = feature_func(image)
+            feat = feature_func(image, **kwargs)
             images.append(image)
             features.append(feat)
             labels.append(label)
@@ -184,7 +184,7 @@ def plot_features(imgs, features, labels, idx, feature_name, class_mappings):
 
     ax[1].imshow(features[idx], cmap='gray', vmin=0, vmax=255)
     title = feature_name
-    ax[1].set_title(title, fontsize=10)
+    ax[1].set_title(f"{title}: {class_mappings[labels[idx]]}", fontsize=10)
 
     for a in ax:
         a.axis('off')
