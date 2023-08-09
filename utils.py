@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.svm import SVC
@@ -335,6 +336,17 @@ def classify_decision_tree(X_train, y_train, X_val, y_val):
     y_pred = clf.predict(X_val)
 
     accuracy = accuracy_score(y_val, y_pred)
+    print("Accuracy:", accuracy)
+
+    return y_pred
+
+def classify_rf(X_train, train_labels, X_val, valid_labels):
+    rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_classifier.fit(X_train, train_labels)
+
+    y_pred = rf_classifier.predict(X_val)
+
+    accuracy = accuracy_score(valid_labels, y_pred)
     print("Accuracy:", accuracy)
 
     return y_pred
