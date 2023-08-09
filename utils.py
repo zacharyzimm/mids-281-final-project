@@ -341,7 +341,7 @@ def classify_decision_tree(X_train, y_train, X_val, y_val):
     return y_pred
 
 def classify_rf(X_train, train_labels, X_val, valid_labels):
-    rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_classifier = RandomForestClassifier(max_depth= 10, min_samples_leaf= 2, min_samples_split= 10, n_estimators=150)
     rf_classifier.fit(X_train, train_labels)
 
     y_pred = rf_classifier.predict(X_val)
@@ -383,8 +383,8 @@ def linear_svm(X_train, y_train, X_val, y_val=None):
 
   y_pred = clf.predict(X_val)
 
-  # accuracy = accuracy_score(y_val, y_pred)
-  # print("Accuracy:", accuracy)
+  accuracy = accuracy_score(y_val, y_pred)
+  print("Accuracy:", accuracy)
 
   return y_pred
 
@@ -392,27 +392,29 @@ def nonlinear_svm(X_train, y_train, X_val, y_val):
   clf = SVC(C=1e10, kernel="sigmoid")
   clf.fit(X_train, y_train)
 
-  # Create a mesh grid to plot decision regions
-  h = .02  # Step size in the mesh
-  x_min, x_max = X_train[:, 0].min() - 1, X_train[:, 0].max() + 1
-  y_min, y_max = X_train[:, 1].min() - 1, X_train[:, 1].max() + 1
-  xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+  # # Create a mesh grid to plot decision regions
+  # h = .02  # Step size in the mesh
+  # x_min, x_max = X_train[:, 0].min() - 1, X_train[:, 0].max() + 1
+  # y_min, y_max = X_train[:, 1].min() - 1, X_train[:, 1].max() + 1
+  # xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
 
-  # Obtain the predicted class labels for each point in the mesh grid
-  Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-  Z = Z.reshape(xx.shape)
-  # Plot the decision regions
-  plt.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
+  # # Obtain the predicted class labels for each point in the mesh grid
+  # Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+  # Z = Z.reshape(xx.shape)
+  # # Plot the decision regions
+  # plt.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
 
-  # Plot the data points
-  plt.scatter(X[:, 0], X[:, 1], c=y_train, cmap=plt.cm.coolwarm, edgecolors='k')
+  # # Plot the data points
+  # plt.scatter(X[:, 0], X[:, 1], c=y_train, cmap=plt.cm.coolwarm, edgecolors='k')
 
-  plt.xlabel('PCA Component 1')
-  plt.ylabel('PCA Component 2')
-  plt.title('Nonlinear SVM Decision Regions')
-  plt.show()
+  # plt.xlabel('PCA Component 1')
+  # plt.ylabel('PCA Component 2')
+  # plt.title('Nonlinear SVM Decision Regions')
+  # plt.show()
 
   y_pred = clf.predict(X_val)
 
   accuracy = accuracy_score(y_val, y_pred)
   print("Accuracy:", accuracy)
+
+  return y_pred
