@@ -137,7 +137,7 @@ def apply_hounsfield_units(image, bone_hu=400, fat_hu=-120, water_hu = 0, air_hu
 
     return ct_image
 
-def extract_features(split_path, feature_func, class_mappings, kwargs):
+def extract_features(split_path, feature_func, class_mappings, kwargs=None):
     features = []
     images = []
     labels = []
@@ -146,7 +146,10 @@ def extract_features(split_path, feature_func, class_mappings, kwargs):
         class_path = os.path.join(split_path, class_name)
         for img_name in os.listdir(class_path):
             image = cv2.imread(os.path.join(class_path, img_name), cv2.IMREAD_GRAYSCALE)
-            feat = feature_func(image, **kwargs)
+            if kwargs:
+              feat = feature_func(image.copy(), **kwargs)
+            else:
+              feat = feature_func(image.copy())
             images.append(image)
             features.append(feat)
             labels.append(label)
@@ -174,6 +177,28 @@ def get_soft_tissue(image):
 
     return masked_img
 
+def get_pca_and_lda_features(train_features, y_train, valid_features, y_val, test_features, y_test):
+    ## Run PCA on training set
+    pca_models, train_features_pca = get_PCA([[img.flatten() for img in train_features]], n_components=200)
+
+    ## Fit lda model on training set
+    lda = LinearDiscriminantAnalysis()
+    lda.fit(train_features_pca[0], y_train)
+
+    ## Generate LDA features
+    X_train = lda.transform(train_features_pca[0])
+
+    ## Run PCA and LDA on val set
+    X_val_raw = np.array([img.flatten() for img in valid_features])
+    X_val_pca = pca_models[0].transform(X_val_raw)
+    X_val = lda.transform(X_val_pca)
+
+    ## Run PCA and LDA on test set
+    X_test_raw = np.array([img.flatten() for img in test_features])
+    X_test_pca = pca_models[0].transform(X_test_raw)
+    X_test = lda.transform(X_test_pca)
+
+    return X_train, X_val, X_test
 
 ##### Visualizations
 
